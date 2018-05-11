@@ -106,3 +106,21 @@ Database drivers for MySQL, Postgres, Microsoft SQL Server, MongoDB, and Redis a
 
 To connect to an Oracle database, you will need to download the appropriate driver (e.g. from http://www.oracle.com/technetwork/database/features/jdbc/index-091264.html). Then make a `libs` directory in the `spring-music` project, and move the driver, `ojdbc7.jar` or `ojdbc8.jar`, into the `libs` directory.
 In `build.gradle`, uncomment the line `compile files('libs/ojdbc8.jar')` or `compile files('libs/ojdbc7.jar')` and run `./gradle assemble`
+
+#### Running on Minikube Kubernetes
+
+Assuming you've already configured and have Minikube running...
+
+```bash
+./k8s-build.sh
+./k8s-configure-db.sh
+./k8s-configure-app.sh
+minikube service musicservice
+```
+
+That's it. Once everything has started you should see Spring Music in your browser. 
+Secrets will have been added to Kubernetes for the database username and password (not particularly secret as they are in this repo!). 
+Mysql will be deployed in a non-HA 'singleton' configuration.
+
+To see what I've done here, check in the `src/main/kubernetes` folder. 
+I've also tweaked `build.gradle` and added a `Dockerfile` in `src/main/docker`.
