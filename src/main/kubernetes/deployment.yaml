@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: musicservice
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: spring-music
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: musicdeployment
+  namespace: default
+  labels:
+    app: spring-music
+spec: # this is the spec for the deployment (inc. things like replicas and how to rollout updates)
+  replicas: 1 # bring up and maintain n replicas of the pod
+  revisionHistoryLimit: 10 # keep only the last 10 entries in the rollout history
+  minReadySeconds: 60 # wait until the first pod has been healthy for 60 seconds before rolling out the next one
+  progressDeadlineSeconds: 300 # should take no more than 300 seconds per individual pod, otherwise fail the deployment.
+  selector: # select the app for the deployment
+    matchLabels: # match the labels 'app=speingboot-demo'
+      app: spring-music 
+  strategy: # will be one of either Recreate or RollingUpdate
+    rollingUpdate: # we will use the rollingUpdate method (allows blue/green etc.)
+      maxSurge: 100% # adds additional pods temporarily so we can maintain our existing capacity (can be %)
+      maxUnavailable: 0% # specifies how many pods can be killed and upgraded at a time (can be %).
+    type: RollingUpdate
+  template: # this is the spec for the pods deployed as part of the deployment
+    metadata:
+      annotations:
+        kubernetes.io/change-cause: "Deploying spring-music to 1.0" # Update reason shows up in 'kubectl rollout history deployments xxx'
+      labels: # label the app
+        app: spring-music
+        version: "1.0" # This is just a label, changing it doesn't update the running version
+    spec: # this is the Pod specification template
+      containers: # specify the container types (inc. how they're monitored for health) 
+      - name: spring-music
+        image: benwilcock/spring-music:1.0 # specify the Docker image (you can change versions here)
+        imagePullPolicy: IfNotPresent # Would be 'Always' by default, but this can cause extra pulls
+        ports: # specify the ports to expose
+        - containerPort: 8080 # expose the app on port 8080 in the pod
+          protocol: TCP # use the TCP protocol (default, alternative is UDP)
+        # livenessProbe: # checks if the container (in the pod) is healthy
+        #   httpGet: # this probe will use the http GET method
+        #     path: /health # call the actuator /health endpoint
+        #     port: 8080 # use the container port 8080
+        #   initialDelaySeconds: 20 # will not get called until 45 seconds after the pod has been created
+        #   timeoutSeconds: 10 # must respond within 1 second
+        #   periodSeconds: 60 # run the probe every 10 seconds
+        #   failureThreshold: 3 # if more than 3 probes fail, restart the container
+        # readinessProbe: # check if the apploication (or service) is ready to receive traffic
+        #   httpGet: # this probe will use the http GET method
+        #     path: /health # call the / endpoint to see if we're ready
+        #     port: 8080 # call the container port 8080
+        #   initialDelaySeconds: 30 # check as soon as the pod is 'live'
+        #   periodSeconds: 10 # check every 10 seconds
+        #   failureThreshold: 3 # fail after 3 bad attempts
+        #   successThreshold: 1 # go to 'ready' after 1 successful check
+        env: # Adds an ENV variable at runtime
+          - name: SPRING_PROFILES_ACTIVE
+            value: mysql
+          - name: SPRING_DATASOURCE_DRIVER-CLASS-NAME
+            value: com.mysql.jdbc.Driver
+          - name: spring.jpa.properties.hibernate.dialect
+            value: org.hibernate.dialect.MySQL55Dialect
+          - name: SPRING_DATASOURCE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mysqlsecret
+                key: database.username
+          - name: SPRING_DATASOURCE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysqlsecret
+                key: database.password
+          - name: SPRING_DATASOURCE_URL
+            valueFrom:
+              secretKeyRef:
+                name: mysqlsecret
+                key: spring.datasource.url
