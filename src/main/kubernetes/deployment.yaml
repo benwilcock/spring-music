@@ -46,22 +46,22 @@ spec: # this is the spec for the deployment (inc. things like replicas and how t
         ports: # specify the ports to expose
         - containerPort: 8080 # expose the app on port 8080 in the pod
           protocol: TCP # use the TCP protocol (default, alternative is UDP)
-        # livenessProbe: # checks if the container (in the pod) is healthy
-        #   httpGet: # this probe will use the http GET method
-        #     path: /health # call the actuator /health endpoint
-        #     port: 8080 # use the container port 8080
-        #   initialDelaySeconds: 20 # will not get called until 45 seconds after the pod has been created
-        #   timeoutSeconds: 10 # must respond within 1 second
-        #   periodSeconds: 60 # run the probe every 10 seconds
-        #   failureThreshold: 3 # if more than 3 probes fail, restart the container
-        # readinessProbe: # check if the apploication (or service) is ready to receive traffic
-        #   httpGet: # this probe will use the http GET method
-        #     path: /health # call the / endpoint to see if we're ready
-        #     port: 8080 # call the container port 8080
-        #   initialDelaySeconds: 30 # check as soon as the pod is 'live'
-        #   periodSeconds: 10 # check every 10 seconds
-        #   failureThreshold: 3 # fail after 3 bad attempts
-        #   successThreshold: 1 # go to 'ready' after 1 successful check
+        livenessProbe: # checks if the container (in the pod) is healthy
+          httpGet: # this probe will use the http GET method
+            path: /actuator/health # call the actuator /health endpoint
+            port: 8080 # use the container port 8080
+          initialDelaySeconds: 20 # will not get called until 45 seconds after the pod has been created
+          timeoutSeconds: 10 # must respond within 1 second
+          periodSeconds: 60 # run the probe every 10 seconds
+          failureThreshold: 3 # if more than 3 probes fail, restart the container
+        readinessProbe: # check if the apploication (or service) is ready to receive traffic
+          httpGet: # this probe will use the http GET method
+            path: /actuator/health # call the / endpoint to see if we're ready
+            port: 8080 # call the container port 8080
+          initialDelaySeconds: 30 # check as soon as the pod is 'live'
+          periodSeconds: 10 # check every 10 seconds
+          failureThreshold: 3 # fail after 3 bad attempts
+          successThreshold: 1 # go to 'ready' after 1 successful check
         env: # Adds an ENV variable at runtime
           - name: SPRING_PROFILES_ACTIVE
             value: mysql
